@@ -24,7 +24,7 @@ npx poe-code wrap claude
 or 
 
 ## Set it as your default (works with CLIs and desktop apps)
-This updates the provider’s config files and continue using your tools normally. 
+This updates the provider’s config files and continue using your tools normally.
 
 ```bash
 # Start the interactive setup
@@ -33,6 +33,16 @@ npx poe-code configure
 # Setup a specific agent
 npx poe-code@latest configure codex # (or claude, opencode, kimi)
 ```
+
+### Direct Anthropic API mode
+
+Configure Claude Code to use the Anthropic API directly instead of routing through Poe:
+
+```bash
+npx poe-code configure claude-code --direct --api-key sk-ant-...
+```
+
+This sets `ANTHROPIC_BASE_URL` to `https://api.anthropic.com` and uses your Anthropic key via `apiKeyHelper`. Your Poe credentials are untouched.
 
 
 ### Unconfigure (remove overrides)
