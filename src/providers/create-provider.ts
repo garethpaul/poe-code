@@ -54,6 +54,7 @@ interface CreateProviderOptions<
   branding?: ProviderBranding;
   disabled?: boolean;
   supportsStdinPrompt?: boolean;
+  supportsDirect?: boolean;
   configurePrompts?: ProviderConfigurePrompts;
   postConfigureMessages?: string[];
   isolatedEnv?: ProviderIsolatedEnv;
@@ -87,6 +88,7 @@ export function createProvider<
     branding: opts.branding,
     disabled: opts.disabled,
     supportsStdinPrompt: opts.supportsStdinPrompt,
+    supportsDirect: opts.supportsDirect,
     configurePrompts: opts.configurePrompts,
     postConfigureMessages: opts.postConfigureMessages,
     isolatedEnv: opts.isolatedEnv,

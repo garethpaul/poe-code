@@ -71,6 +71,7 @@ export interface ProviderService<
   branding?: ProviderBranding;
   disabled?: boolean;
   supportsStdinPrompt?: boolean;
+  supportsDirect?: boolean;
   configurePrompts?: ProviderConfigurePrompts;
   postConfigureMessages?: string[];
   isolatedEnv?: ProviderIsolatedEnv;

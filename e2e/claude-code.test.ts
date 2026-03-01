@@ -38,6 +38,7 @@ describe('claude-code', () => {
     expect(config.apiKeyHelper).toBe('echo sk-ant-fake');
     expect(config.env?.ANTHROPIC_BASE_URL).toBe('https://api.anthropic.com');
     expect(config.env?.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
-    expect(config.model).toBeDefined();
+    expect(typeof config.model).toBe('string');
+    expect(config.model.length).toBeGreaterThan(0);
   });
 });
