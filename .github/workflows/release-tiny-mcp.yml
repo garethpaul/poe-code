@@ -13,6 +13,7 @@ permissions:
   id-token: write
 jobs:
   publish:
+    if: github.repository == 'poe-platform/poe-code'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
