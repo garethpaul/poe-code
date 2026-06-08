@@ -7,6 +7,7 @@ on:
 jobs:
   discover:
     name: Discover Model Events
+    if: github.repository == 'poe-platform/poe-code' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -49,7 +50,7 @@ jobs:
   resolve:
     name: Resolve Actionable Model Issues
     needs: [discover]
-    if: ${{ needs.discover.outputs.actionable_issue_count != '0' }}
+    if: ${{ needs.discover.result == 'success' && needs.discover.outputs.actionable_issue_count != '0' }}
     strategy:
       fail-fast: false
       matrix:
