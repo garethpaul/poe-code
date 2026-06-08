@@ -16,7 +16,24 @@ permissions:
   id-token: write
 
 jobs:
+  decide:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.publish.outputs.enabled }}
+    steps:
+      - name: Decide whether to publish schemas
+        id: publish
+        run: |
+          if [ "$GITHUB_REPOSITORY" = "poe-platform/poe-code" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping GitHub Pages schema publication outside poe-platform/poe-code."
+          fi
+
   build:
+    needs: decide
+    if: needs.decide.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +57,8 @@ jobs:
           path: ${{ runner.temp }}/pages
 
   deploy:
-    needs: build
+    needs: [decide, build]
+    if: needs.decide.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
