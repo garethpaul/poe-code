@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import * as nodeFs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { setImmediate as realSetImmediate } from "node:timers";
+import { setImmediate as realSetImmediate, setTimeout as realSetTimeout } from "node:timers";
 import { fs, vol } from "memfs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RalphRunOptions } from "@poe-code/ralph";
@@ -1168,6 +1168,15 @@ async function waitForEventCount(events: readonly MaestroEvent[], count: number)
 
   if (events.length >= count) {
     return;
+  }
+
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    await new Promise<void>((resolve) => realSetTimeout(resolve, 1));
+    await flushMicrotasks();
+
+    if (events.length >= count) {
+      return;
+    }
   }
 
   throw new Error(`Expected ${count} maestro events, received ${events.length}.`);
