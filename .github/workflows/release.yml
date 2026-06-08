@@ -42,18 +42,42 @@ jobs:
       - run: npm audit signatures
       - run: npx turbo run test:unit --concurrency=4 --force
       - run: npm run smoke
+      - name: Decide whether to publish
+        id: release_publish
+        run: |
+          if [ "$GITHUB_REPOSITORY" = "poe-platform/poe-code" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping npm release outside poe-platform/poe-code."
+          fi
+      - name: Detect GitHub App credentials
+        id: app_credentials
+        if: steps.release_publish.outputs.enabled == 'true'
+        env:
+          POE_CODE_AGENT_APP_ID: ${{ secrets.POE_CODE_AGENT_APP_ID }}
+          POE_CODE_AGENT_PRIVATE_KEY: ${{ secrets.POE_CODE_AGENT_PRIVATE_KEY }}
+        run: |
+          if [ -n "$POE_CODE_AGENT_APP_ID" ] && [ -n "$POE_CODE_AGENT_PRIVATE_KEY" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::POE_CODE_AGENT_APP_ID/POE_CODE_AGENT_PRIVATE_KEY are not configured; using the workflow GITHUB_TOKEN for semantic-release."
+          fi
       - name: Generate GitHub App token
         id: app_token
+        if: steps.release_publish.outputs.enabled == 'true' && steps.app_credentials.outputs.available == 'true'
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.POE_CODE_AGENT_APP_ID }}
           private-key: ${{ secrets.POE_CODE_AGENT_PRIVATE_KEY }}
       - name: Release Beta
+        if: steps.release_publish.outputs.enabled == 'true'
         env:
-          GITHUB_TOKEN: ${{ steps.app_token.outputs.token }}
-          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.app_token.outputs.token || github.token }}
+          GH_TOKEN: ${{ steps.app_token.outputs.token || github.token }}
           HUSKY: "0"
-        run: npx semantic-release
+        run: npx semantic-release --repository-url "https://github.com/${GITHUB_REPOSITORY}.git"
   release-stable:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || inputs.branch == 'main'
@@ -71,20 +95,44 @@ jobs:
       - run: npm audit signatures
       - run: npx turbo run test:unit --concurrency=4 --force
       - run: npm run smoke
+      - name: Decide whether to publish
+        id: release_publish
+        run: |
+          if [ "$GITHUB_REPOSITORY" = "poe-platform/poe-code" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping npm release outside poe-platform/poe-code."
+          fi
+      - name: Detect GitHub App credentials
+        id: app_credentials
+        if: steps.release_publish.outputs.enabled == 'true'
+        env:
+          POE_CODE_AGENT_APP_ID: ${{ secrets.POE_CODE_AGENT_APP_ID }}
+          POE_CODE_AGENT_PRIVATE_KEY: ${{ secrets.POE_CODE_AGENT_PRIVATE_KEY }}
+        run: |
+          if [ -n "$POE_CODE_AGENT_APP_ID" ] && [ -n "$POE_CODE_AGENT_PRIVATE_KEY" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::POE_CODE_AGENT_APP_ID/POE_CODE_AGENT_PRIVATE_KEY are not configured; using the workflow GITHUB_TOKEN for semantic-release."
+          fi
       - name: Generate GitHub App token
         id: app_token
+        if: steps.release_publish.outputs.enabled == 'true' && steps.app_credentials.outputs.available == 'true'
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.POE_CODE_AGENT_APP_ID }}
           private-key: ${{ secrets.POE_CODE_AGENT_PRIVATE_KEY }}
       - name: Release Stable
+        if: steps.release_publish.outputs.enabled == 'true'
         env:
-          GITHUB_TOKEN: ${{ steps.app_token.outputs.token }}
-          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.app_token.outputs.token || github.token }}
+          GH_TOKEN: ${{ steps.app_token.outputs.token || github.token }}
           HUSKY: "0"
-        run: npx semantic-release
+        run: npx semantic-release --repository-url "https://github.com/${GITHUB_REPOSITORY}.git"
       - name: Sync beta with main
-        if: always()
+        if: ${{ success() && steps.release_publish.outputs.enabled == 'true' && steps.app_token.outputs.token != '' }}
         continue-on-error: true
         env:
           GH_TOKEN: ${{ steps.app_token.outputs.token }}
@@ -92,6 +140,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          if ! git ls-remote --exit-code --heads origin beta >/dev/null; then
+            echo "::notice::No beta branch found; skipping beta sync."
+            exit 0
+          fi
           git fetch origin beta:beta
           git checkout beta
           git rebase main || { echo "Rebase failed, manual sync required"; exit 1; }
